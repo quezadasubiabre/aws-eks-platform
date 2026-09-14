@@ -30,6 +30,12 @@ terraform -chdir=infraestructure/eks apply
 
 The cluster takes about 12 minutes to create.
 
+Configure kubectl to access the cluster:
+
+```sh
+aws eks update-kubeconfig --region eu-west-1 --name k8s-cloud-project
+```
+
 ## Optional: remote state backend
 
 By default, state is stored locally. To back it up in S3, add a `backend.tf` file in each layer (`infraestructure/static/` and `infraestructure/eks/`), replacing `bucket` and `region` with values for your own account:
