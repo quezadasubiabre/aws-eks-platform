@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.jetstack.io
+      chart: cert-manager
+      targetRevision: v1.16.2
+      helm:
+        valueFiles:
+          - $values/gitops/apps/cert-manager/values.yaml
+    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+      targetRevision: main
+      ref: values
+  # gitops/apps/cert-manager/manifests/cluster-issuer.yaml is deliberately NOT
+  # a source here: it contains an ${ACME_EMAIL} placeholder that needs sed
+  # substitution before apply (same reasoning as repo-credentials.yaml — no
+  # personal email committed to git), so Argo CD syncing it verbatim would
+  # apply the literal placeholder string. Apply it manually instead via
+  # `make add-cluster-issuer`.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

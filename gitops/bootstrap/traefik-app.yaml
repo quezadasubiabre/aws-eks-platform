@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://traefik.github.io/charts
+      chart: traefik
+      targetRevision: 41.2.0
+      helm:
+        valueFiles:
+          - $values/gitops/apps/traefik/values.yaml
+    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+      targetRevision: main
+      path: gitops/apps/traefik/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,9 @@
+clusterName: k8s-cloud-project
+region: eu-west-1
+
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    # terraform -chdir=infraestructure/eks output lbc_role_arn
+    eks.amazonaws.com/role-arn: arn:aws:iam::<AWS_ACCOUNT_ID>:role/k8s-cloud-project-lbc
