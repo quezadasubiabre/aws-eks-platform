@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+  # ensures `kubectl delete application` cascades to the resources this app
+  # deployed instead of orphaning them (see Makefile's delete-argocd-apps,
+  # which otherwise has to patch this in after the fact).
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://aws.github.io/eks-charts
+      chart: aws-load-balancer-controller
+      targetRevision: 3.5.0
+      helm:
+        valueFiles:
+          - $values/gitops/apps/aws-load-balancer-controller/values.yaml
+    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    # must match the IRSA trust policy's service account subject
+    # (system:serviceaccount:kube-system:aws-load-balancer-controller), see
+    # infraestructure/eks/irsa-lbc.tf
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,11 @@
+# jetstack/cert-manager Helm chart values
+installCRDs: true
+
+# small cluster / cost-conscious, same reasoning as the other add-ons in
+# this repo (kube-prometheus-stack, aws-load-balancer-controller): 1 replica
+# to keep pod count and private IP usage down.
+replicaCount: 1
+webhook:
+  replicaCount: 1
+cainjector:
+  replicaCount: 1

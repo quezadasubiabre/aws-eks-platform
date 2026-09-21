@@ -1,0 +1,39 @@
+service:
+  # LoadBalancer: the AWS Load Balancer Controller provisions an NLB straight
+  # from this Service (annotations below), replacing the ALB+Ingress setup.
+  # NOTE: chart v41.x moved this key from `service.type` to `service.spec.type`.
+  spec:
+    type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # set via `make update-my-ip` (see Makefile) - not committed with a real IP
+    service.beta.kubernetes.io/aws-load-balancer-source-ranges: <YOUR_IP>/32
+
+ports:
+  web:
+    # redirect plain HTTP straight to HTTPS at the entrypoint level.
+    # NOTE: chart v41.x moved this from `ports.web.redirectTo` to
+    # `ports.web.http.redirections.entryPoint`.
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    # TLS terminates HERE, in Traefik, not at a load balancer — the NLB is a
+    # pure L4 passthrough and can't terminate TLS the way the old ALB did.
+    # cert-manager (gitops/apps/cert-manager) issues the cert into the Secret
+    # referenced by each Ingress's `tls:` block (see
+    # gitops/apps/guestbook/ingress.yaml); Traefik picks it up automatically
+    # because it's watching that Ingress.
+    # `http.tls.enabled` defaults to true already (chart v41.x moved it from
+    # `ports.websecure.tls`) — no override needed here.
+    expose:
+      default: true
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true

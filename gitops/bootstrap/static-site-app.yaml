@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: static-site
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+    targetRevision: main
+    path: gitops/apps/static-site
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: static-site
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

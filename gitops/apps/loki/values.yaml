@@ -1,0 +1,33 @@
+# loki-stack: single-binary Loki + Promtail, no object storage backend —
+# fine for a portfolio cluster with low log volume and short retention.
+
+loki:
+  # kube-prometheus-stack's bundled Grafana datasource already marks
+  # Prometheus as default; a second isDefault: true here makes Grafana
+  # reject provisioning both ("Only one datasource per organization can be
+  # marked as default"), which breaks datasource auto-detection cluster-wide
+  isDefault: false
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClassName: gp3
+  resources:
+    requests:
+      cpu: 25m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  config:
+    limits_config:
+      retention_period: 72h
+    compactor:
+      retention_enabled: true
+
+promtail:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+grafana:
+  enabled: false # already deployed by the monitoring app; Loki added as a datasource there

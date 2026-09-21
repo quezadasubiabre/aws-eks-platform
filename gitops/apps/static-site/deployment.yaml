@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-site
+  namespace: static-site
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: static-site
+  template:
+    metadata:
+      labels:
+        app: static-site
+    spec:
+      containers:
+        - image: dockersamples/static-site
+          name: static-site
+          env:
+            # dockersamples/static-site defaults to AUTHOR=YOU, EMAIL=YOU@example.com —
+            # override so the page shows something meaningful instead.
+            - name: AUTHOR
+              value: "Cristobal Quezada"
+          ports:
+            - containerPort: 80
