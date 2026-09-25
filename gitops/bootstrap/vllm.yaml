@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: static-site
+  name: my-app
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,10 +10,10 @@ spec:
   source:
     repoURL: https://github.com/quezadasubiabre/aws-eks-platform.git
     targetRevision: main
-    path: gitops/apps/static-site
+    path: gitops/apps/vllm
   destination:
     server: https://kubernetes.default.svc
-    namespace: static-site
+    namespace: my-app
   syncPolicy:
     automated:
       prune: true

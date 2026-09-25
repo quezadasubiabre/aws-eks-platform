@@ -1,0 +1,5 @@
+# nvidia-device-plugin already tolerates nvidia.com/gpu:NoSchedule by
+# default (see the chart's own values.yaml) — only nodeSelector needs
+# setting, so this DaemonSet's pod only even tries the GPU node.
+nodeSelector:
+  role: gpu

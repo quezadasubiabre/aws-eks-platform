@@ -49,3 +49,14 @@ install-app: create-cloudflare-secret
 	kubectl apply -f gitops/bootstrap/traefik-app.yaml
 
 
+
+install-gpu-apps:
+	kubectl apply -f gitops/bootstrap/nvidia-gpu-app.yaml
+	
+ 
+gpu-node:
+	AWS_PROFILE=myaws terraform -chdir=infraestructure/eks apply -var gpu_desired_size=1
+
+
+install-llm:
+	kubectl apply -f gitops/bootstrap/vllm.yaml

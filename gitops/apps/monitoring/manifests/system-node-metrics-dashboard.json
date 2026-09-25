@@ -1,0 +1,120 @@
+{
+  "title": "System Node Metrics",
+  "uid": "system-node",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "tags": ["platform", "infrastructure"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "System node: CPU & RAM",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "System node CPU usage",
+      "type": "timeseries",
+      "description": "Filtered by the system node's IP - update if the node is recreated.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "1 - avg(rate(node_cpu_seconds_total{mode=\"idle\", instance=\"10.0.55.188:9100\"}[5m]))",
+          "legendFormat": "System node CPU usage"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 3,
+      "title": "System node memory usage",
+      "type": "timeseries",
+      "description": "Same IP filter as the CPU panel.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "expr": "1 - (node_memory_MemAvailable_bytes{instance=\"10.0.55.188:9100\"} / node_memory_MemTotal_bytes{instance=\"10.0.55.188:9100\"})",
+          "legendFormat": "System node memory usage"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 4,
+      "title": "Pods on the system node",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "title": "Memory by pod (over time)",
+      "type": "timeseries",
+      "description": "Every pod scheduled on the system node.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "expr": "sum by (namespace, pod) (container_memory_working_set_bytes{container!=\"\", node=\"ip-10-0-55-188.eu-west-1.compute.internal\"})",
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 6,
+      "title": "CPU by pod (over time)",
+      "type": "timeseries",
+      "description": "Same node filter as the memory panel.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=\"\", node=\"ip-10-0-55-188.eu-west-1.compute.internal\"}[5m]))",
+          "legendFormat": "{{namespace}}/{{pod}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 7,
+      "title": "Memory by pod (current, table)",
+      "type": "table",
+      "description": "A snapshot table is easier to scan than a 20+ line graph.",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 30 },
+      "targets": [
+        {
+          "expr": "sum by (namespace, pod) (container_memory_working_set_bytes{container!=\"\", node=\"ip-10-0-55-188.eu-west-1.compute.internal\"})",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "CPU by pod (current, table)",
+      "type": "table",
+      "description": "Same snapshot idea as the memory table.",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 30 },
+      "targets": [
+        {
+          "expr": "sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=\"\", node=\"ip-10-0-55-188.eu-west-1.compute.internal\"}[5m]))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ]
+    }
+  ]
+}

@@ -17,7 +17,7 @@ spec:
       helm:
         valueFiles:
           - $values/gitops/apps/aws-load-balancer-controller/values.yaml
-    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+    - repoURL: https://github.com/quezadasubiabre/aws-eks-platform.git
       targetRevision: main
       ref: values
   destination:

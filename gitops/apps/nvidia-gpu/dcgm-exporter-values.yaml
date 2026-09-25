@@ -1,0 +1,18 @@
+# unlike the device plugin, dcgm-exporter's default tolerations only cover
+# the control-plane taint — it needs an explicit toleration for our GPU
+# node's nvidia.com/gpu:NoSchedule taint, or it never gets scheduled there.
+nodeSelector:
+  role: gpu
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+
+# serviceMonitor.enabled is already true by default; the Prometheus CR only
+# watches ServiceMonitors labeled release: monitoring (see gitops/apps/monitoring),
+# so without this label dcgm-exporter's metrics would never actually get scraped.
+serviceMonitor:
+  additionalLabels:
+    release: monitoring

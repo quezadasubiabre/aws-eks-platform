@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: my-app
+spec:
+  # only one GPU node is ever allowed to exist (scaling_config.max_size = 1
+  # in infraestructure/eks/main.tf) and nvidia.com/gpu can't be overcommitted,
+  # so this can't scale past 1 replica without also raising that node cap.
+  replicas: 1
+  # RollingUpdate (the default) tries to bring up the new pod before killing
+  # the old one, which can never work here: only one GPU exists and the node
+  # is otherwise full, so there's never room for both at once - it deadlocks
+  # every rollout instead. Recreate kills the old pod first, freeing the GPU
+  # node's exclusive resources before the new one is created.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      # land only on the GPU node group (labels = { role = "gpu" } in main.tf)
+      nodeSelector:
+        role: gpu
+      # required to be scheduled on the GPU node, which carries this taint
+      # so that regular pods stay off it (see infraestructure/eks/main.tf)
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          # pinned to a stable release, not a nightly tag: nightly builds mix
+          # torch/torchvision from different, not-necessarily-compatible
+          # builds and can fail at import time (e.g. "RuntimeError: operator
+          # torchvision::nms does not exist"). Stable tags are tested together.
+          image: vllm/vllm-openai:v0.30.0
+          args:
+            - --model
+            - Qwen/Qwen2.5-7B-Instruct-AWQ
+            - --quantization
+            - awq
+            - --dtype
+            - float16
+            - --max-model-len
+            - "8192"
+          ports:
+            # named so the PodMonitor (podmonitor.yaml) can reference it by
+            # name instead of by number — vLLM exposes Prometheus metrics
+            # natively on this same port, at /metrics.
+            - name: http
+              containerPort: 8000
+          # sized against the GPU node's real capacity (g5.xlarge/g4dn.xlarge:
+          # 4 vCPU / 16Gi, see infraestructure/eks/main.tf) leaving headroom
+          # for the daemonsets that also run there (device plugin,
+          # dcgm-exporter, kube-proxy, CNI) since only one pod ever lands
+          # on this node at a time (GPU is exclusive, node cap is 1).
+          resources:
+            requests:
+              cpu: "3"
+              memory: "12Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "14Gi"
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: cache
+              mountPath: /root/.cache/huggingface
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: my-app-cache

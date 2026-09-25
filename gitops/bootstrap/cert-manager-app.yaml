@@ -14,7 +14,7 @@ spec:
       helm:
         valueFiles:
           - $values/gitops/apps/cert-manager/values.yaml
-    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+    - repoURL: https://github.com/quezadasubiabre/aws-eks-platform.git
       targetRevision: main
       ref: values
   # gitops/apps/cert-manager/manifests/cluster-issuer.yaml is deliberately NOT

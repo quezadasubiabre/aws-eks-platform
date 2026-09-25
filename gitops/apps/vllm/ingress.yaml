@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app
+  namespace: my-app
+  annotations:
+    # strips /vllm before forwarding, since vLLM's API only knows routes
+    # like /v1/models, not /vllm/v1/models
+    traefik.ingress.kubernetes.io/router.middlewares: my-app-strip-vllm-prefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: demo.quezadasubiabre.com
+      http:
+        paths:
+          - path: /vllm
+            pathType: Prefix
+            backend:
+              service:
+                name: my-app
+                port:
+                  number: 80

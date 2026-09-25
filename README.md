@@ -100,6 +100,28 @@ kubectl apply -f gitops/bootstrap/static-site-app.yaml
 
 Deploys [`dockersamples/static-site`](https://hub.docker.com/r/dockersamples/static-site) behind Traefik, to confirm the NLB → Traefik → cert-manager chain works end to end.
 
+## 7. GPU workload (vLLM)
+
+The cluster's GPU node group is scaled to 0 by default (Spot `g5.xlarge`/`g4dn.xlarge` cost money even idle). To run something on it:
+
+```sh
+make gpu-node
+```
+
+Scales the GPU node group to 1 (`gpu_desired_size = 1` in `infraestructure/eks`). Scale it back to 0 the same way when you're done, to stop paying for it.
+
+```sh
+kubectl apply -f gitops/bootstrap/nvidia-gpu-app.yaml
+```
+
+Installs the NVIDIA device plugin and dcgm-exporter, so the GPU node's `nvidia.com/gpu` resource is schedulable and its metrics are scraped by Prometheus.
+
+```sh
+make install-llm
+```
+
+Deploys vLLM (`gitops/bootstrap/vllm.yaml`), serving an OpenAI-compatible API behind Traefik.
+
 ## Optional: remote state backend
 
 By default, Terraform state is stored locally. To back it up in S3, add a `backend.tf` file in each layer (`infraestructure/static/` and `infraestructure/eks/`), replacing `bucket` and `region` with values for your own account:

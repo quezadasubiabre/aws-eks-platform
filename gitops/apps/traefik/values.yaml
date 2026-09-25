@@ -23,17 +23,25 @@ ports:
           scheme: https
           permanent: true
   websecure:
-    # TLS terminates HERE, in Traefik, not at a load balancer — the NLB is a
-    # pure L4 passthrough and can't terminate TLS the way the old ALB did.
-    # cert-manager (gitops/apps/cert-manager) issues the cert into the Secret
-    # referenced by each Ingress's `tls:` block (see
-    # gitops/apps/guestbook/ingress.yaml); Traefik picks it up automatically
-    # because it's watching that Ingress.
-    # `http.tls.enabled` defaults to true already (chart v41.x moved it from
-    # `ports.websecure.tls`) — no override needed here.
     expose:
       default: true
 
 ingressClass:
   enabled: true
   isDefaultClass: true
+
+# Traefik exposes Prometheus metrics (traefik_service_requests_total,
+# traefik_service_request_duration_seconds, etc.) on port 9100 by default,
+# but that port isn't reachable outside the pod until it's wired to a
+# ServiceMonitor. additionalLabels.release: monitoring is required — same
+# reasoning as dcgm-exporter's ServiceMonitor (see
+# gitops/apps/nvidia-gpu/dcgm-exporter-values.yaml): the Prometheus CR only
+# watches ServiceMonitors labeled release: monitoring, so without this label
+# Traefik's metrics would be exposed but never actually scraped.
+metrics:
+  prometheus:
+    entryPoint: metrics
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: monitoring

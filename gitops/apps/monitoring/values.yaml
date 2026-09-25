@@ -13,7 +13,7 @@ prometheus:
         cpu: 50m
         memory: 256Mi
       limits:
-        memory: 512Mi
+        memory: 2Gi
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -41,6 +41,12 @@ kube-state-metrics:
     requests:
       cpu: 10m
       memory: 64Mi
+  # kube_node_labels only exposes a small default allowlist of node labels
+  # (cardinality safety) - the custom `role: gpu`/`role: system` label set on
+  # each node (infraestructure/eks/main.tf) isn't in it by default, so it has
+  # to be explicitly opted in here to be queryable as label_role in PromQL.
+  extraArgs:
+    - --metric-labels-allowlist=nodes=[role]
 
 prometheus-node-exporter:
   resources:

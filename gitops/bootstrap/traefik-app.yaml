@@ -14,10 +14,10 @@ spec:
       helm:
         valueFiles:
           - $values/gitops/apps/traefik/values.yaml
-    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+    - repoURL: https://github.com/quezadasubiabre/aws-eks-platform.git
       targetRevision: main
       ref: values
-    - repoURL: https://github.com/quezadasubiabre/k8s-cloud-project.git
+    - repoURL: https://github.com/quezadasubiabre/aws-eks-platform.git
       targetRevision: main
       path: gitops/apps/traefik/manifests
   destination:

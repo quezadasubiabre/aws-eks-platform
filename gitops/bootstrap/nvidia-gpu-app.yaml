@@ -1,25 +1,31 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: loki
+  name: nvidia-gpu
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   sources:
-    - repoURL: https://grafana.github.io/helm-charts
-      chart: loki-stack
-      targetRevision: 2.10.2
+    - repoURL: https://nvidia.github.io/k8s-device-plugin
+      chart: nvidia-device-plugin
+      targetRevision: 0.19.3
       helm:
         valueFiles:
-          - $values/gitops/apps/loki/values.yaml
+          - $values/gitops/apps/nvidia-gpu/device-plugin-values.yaml
+    - repoURL: https://nvidia.github.io/dcgm-exporter/helm-charts
+      chart: dcgm-exporter
+      targetRevision: 4.8.3
+      helm:
+        valueFiles:
+          - $values/gitops/apps/nvidia-gpu/dcgm-exporter-values.yaml
     - repoURL: https://github.com/quezadasubiabre/aws-eks-platform.git
       targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring
+    namespace: nvidia-gpu
   syncPolicy:
     automated:
       prune: true

@@ -1,0 +1,259 @@
+{
+  "title": "GPU Workload Platform",
+  "uid": "gpu-workload-platform",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "tags": ["platform", "gpu", "infrastructure"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Node health",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "Node CPU usage (system vs. GPU node)",
+      "type": "timeseries",
+      "description": "Nodes are matched by IP, not name - update if a node is recreated.",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "label_replace(label_replace(1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])), \"node_role\", \"gpu\", \"instance\", \"10.0.77.52:9100\"), \"node_role\", \"system\", \"instance\", \"10.0.55.188:9100\")",
+          "legendFormat": "{{node_role}} ({{instance}})"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 3,
+      "title": "Node memory usage (system vs. GPU node)",
+      "type": "timeseries",
+      "description": "Same IP matching as the CPU panel.",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "targets": [
+        {
+          "expr": "label_replace(label_replace(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes), \"node_role\", \"gpu\", \"instance\", \"10.0.77.52:9100\"), \"node_role\", \"system\", \"instance\", \"10.0.55.188:9100\")",
+          "legendFormat": "{{node_role}} ({{instance}})"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 4,
+      "title": "GPU utilization (DCGM)",
+      "type": "timeseries",
+      "description": "The GPU node only runs one pod, so this is also vLLM's own usage.",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "targets": [
+        {
+          "expr": "DCGM_FI_DEV_GPU_UTIL",
+          "legendFormat": "GPU {{gpu}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100, "min": 0 } }
+    },
+    {
+      "id": 5,
+      "title": "Resource usage by workload on the GPU node",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
+    },
+    {
+      "id": 6,
+      "title": "Memory by pod (all workloads sharing the node)",
+      "type": "timeseries",
+      "description": "vLLM's pod next to the DaemonSets sharing the same node.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "expr": "sum by (pod) (container_memory_working_set_bytes{node=~\".*\", container!=\"\"})",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 7,
+      "title": "vLLM container: usage vs. requested/limit",
+      "type": "timeseries",
+      "description": "Actual usage vs. the resources set in the Deployment.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"my-app\", container=\"vllm\"})",
+          "legendFormat": "memory usage"
+        },
+        {
+          "expr": "sum(kube_pod_container_resource_requests{namespace=\"my-app\", container=\"vllm\", resource=\"memory\"})",
+          "legendFormat": "memory requested"
+        },
+        {
+          "expr": "sum(kube_pod_container_resource_limits{namespace=\"my-app\", container=\"vllm\", resource=\"memory\"})",
+          "legendFormat": "memory limit"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 8,
+      "title": "vLLM pod restarts",
+      "type": "timeseries",
+      "description": "Surfaces crash loops.",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 18 },
+      "targets": [
+        {
+          "expr": "kube_pod_container_status_restarts_total{namespace=\"my-app\"}",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Endpoint: traffic and errors (Traefik)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "collapsed": false
+    },
+    {
+      "id": 10,
+      "title": "Requests/sec by status code",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "targets": [
+        {
+          "expr": "sum by (code) (rate(traefik_service_requests_total[1m]))",
+          "legendFormat": "{{code}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 11,
+      "title": "Ingress latency (p50/p95/p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 12,
+      "title": "Endpoint: vLLM performance",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "title": "vLLM end-to-end latency (p50/p95/p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 14,
+      "title": "Time to first token (p50/p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 15,
+      "title": "Request lifecycle: queue vs. prefill vs. decode (p50)",
+      "type": "timeseries",
+      "description": "Where request time is actually spent. Queue time should grow under higher concurrency.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 42 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:request_queue_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "queue"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:request_prefill_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "prefill"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:request_decode_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "decode"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 16,
+      "title": "Queue depth & KV-cache usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 42 },
+      "targets": [
+        {
+          "expr": "vllm:num_requests_running",
+          "legendFormat": "running"
+        },
+        {
+          "expr": "vllm:num_requests_waiting",
+          "legendFormat": "waiting"
+        },
+        {
+          "expr": "vllm:kv_cache_usage_perc * 100",
+          "legendFormat": "KV-cache used %"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Prefix cache hit rate",
+      "type": "timeseries",
+      "description": "Repeated prompts hit vLLM's cache and return faster, independent of load.",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 50 },
+      "targets": [
+        {
+          "expr": "sum(rate(vllm:prefix_cache_hits_total[5m])) / sum(rate(vllm:prefix_cache_queries_total[5m]))",
+          "legendFormat": "hit rate"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 } }
+    }
+  ]
+}
