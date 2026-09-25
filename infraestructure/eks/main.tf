@@ -206,7 +206,7 @@ resource "aws_launch_template" "gpu_node" {
   # the AMI's default root volume (~20GB) isn't enough: the vllm-openai image
   # alone is ~11GB compressed and expands much larger once unpacked (full
   # CUDA toolkit, static libs) — was hitting DiskPressure/no-space-left mid
-  # image-pull. Model weights live on the separate PVC (gitops/apps/vlmm),
+  # image-pull. Model weights live on the separate PVC (gitops/apps/vllm),
   # this is just for the OS + container images/layers.
   block_device_mappings {
     device_name = "/dev/xvda"

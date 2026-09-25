@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Kustomize's configMapGenerator embeds the raw JSON file as this ConfigMap's
+# data - no Helm templating available here (this path is applied as plain
+# manifests via Argo CD's third source, not through the Helm chart), so this
+# is the equivalent mechanism for "load a file's contents into a ConfigMap".
+configMapGenerator:
+  - name: gpu-workload-platform-dashboard
+    namespace: monitoring
+    files:
+      - gpu-workload-platform-dashboard.json
+    options:
+      # keep the name stable (no content-hash suffix) so the Grafana sidecar
+      # doesn't need to be told about a new ConfigMap name on every change
+      disableNameSuffixHash: true
+      labels:
+        # kube-prometheus-stack's Grafana sidecar (grafana.sidecar.dashboards,
+        # enabled by default in this chart) watches for ConfigMaps with this
+        # label and auto-loads their JSON as a dashboard - no manual import,
+        # no values.yaml change needed for this to work.
+        grafana_dashboard: "1"
+  - name: node-and-container-metrics-dashboard
+    namespace: monitoring
+    files:
+      - node-and-container-metrics-dashboard.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+  - name: api-endpoint-dashboard
+    namespace: monitoring
+    files:
+      - api-endpoint-dashboard.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+  - name: system-node-metrics-dashboard
+    namespace: monitoring
+    files:
+      - system-node-metrics-dashboard.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"

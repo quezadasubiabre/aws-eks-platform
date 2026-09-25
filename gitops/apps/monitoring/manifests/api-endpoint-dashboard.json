@@ -1,0 +1,186 @@
+{
+  "title": "API Endpoint & vLLM Metrics",
+  "uid": "api-endpoint-vllm",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "tags": ["platform", "api", "vllm"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "API endpoint (Traefik)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "title": "Requests/sec: total vs. by status code",
+      "type": "timeseries",
+      "description": "Errors is any non-2xx code, including 499 (client closed the connection early).",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=\"my-app-my-app-80@kubernetes\"}[1m])) OR on() vector(0)",
+          "legendFormat": "total"
+        },
+        {
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=\"my-app-my-app-80@kubernetes\", code=~\"2..\"}[1m])) OR on() vector(0)",
+          "legendFormat": "success (2xx)"
+        },
+        {
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=\"my-app-my-app-80@kubernetes\", code!~\"2..\"}[1m])) OR on() vector(0)",
+          "legendFormat": "errors (non-2xx)"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 3,
+      "title": "Requests/sec: 200 vs. 400 vs. 500",
+      "type": "timeseries",
+      "description": "Only these three exact codes - other errors (401, 404, 499, 502...) show in the panel above.",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=\"my-app-my-app-80@kubernetes\", code=\"200\"}[1m])) OR on() vector(0)",
+          "legendFormat": "200"
+        },
+        {
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=\"my-app-my-app-80@kubernetes\", code=\"400\"}[1m])) OR on() vector(0)",
+          "legendFormat": "400"
+        },
+        {
+          "expr": "sum(rate(traefik_service_requests_total{exported_service=\"my-app-my-app-80@kubernetes\", code=\"500\"}[1m])) OR on() vector(0)",
+          "legendFormat": "500"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 4,
+      "title": "Ingress latency (p50/p95/p99)",
+      "type": "timeseries",
+      "description": "Latency at the ingress, before the request reaches vLLM.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 10 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(traefik_service_request_duration_seconds_bucket{exported_service=\"my-app-my-app-80@kubernetes\"}[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{exported_service=\"my-app-my-app-80@kubernetes\"}[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(traefik_service_request_duration_seconds_bucket{exported_service=\"my-app-my-app-80@kubernetes\"}[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 5,
+      "title": "vLLM",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "collapsed": false
+    },
+    {
+      "id": 6,
+      "title": "vLLM end-to-end latency (p50/p95/p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 7,
+      "title": "Time to first token (p50/p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 8,
+      "title": "Request lifecycle: queue vs. prefill vs. decode (p50)",
+      "type": "timeseries",
+      "description": "Where request time is actually spent. Queue time should grow under higher concurrency.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:request_queue_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "queue"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:request_prefill_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "prefill"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(vllm:request_decode_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "decode"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 9,
+      "title": "Queue depth & KV-cache usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "targets": [
+        {
+          "expr": "vllm:num_requests_running",
+          "legendFormat": "running"
+        },
+        {
+          "expr": "vllm:num_requests_waiting",
+          "legendFormat": "waiting"
+        },
+        {
+          "expr": "vllm:kv_cache_usage_perc * 100",
+          "legendFormat": "KV-cache used %"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Prefix cache hit rate",
+      "type": "timeseries",
+      "description": "Repeated prompts hit vLLM's cache and return faster, independent of load.",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 36 },
+      "targets": [
+        {
+          "expr": "sum(rate(vllm:prefix_cache_hits_total[5m])) / sum(rate(vllm:prefix_cache_queries_total[5m]))",
+          "legendFormat": "hit rate"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 } }
+    }
+  ]
+}

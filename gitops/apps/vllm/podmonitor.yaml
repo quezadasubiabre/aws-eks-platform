@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: vllm
+  namespace: my-app
+  labels:
+    # the Prometheus CR only watches PodMonitors labeled release: monitoring
+    # (see gitops/apps/monitoring) — without this label, vLLM's metrics would
+    # never actually get scraped. Same pattern as dcgm-exporter's ServiceMonitor.
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  podMetricsEndpoints:
+    # matches the named containerPort "http" in deployment.yaml. vLLM exposes
+    # Prometheus metrics natively on this same port, at /metrics — includes
+    # vllm:num_requests_waiting, vllm:num_requests_running, etc.
+    - port: http
+      path: /metrics
